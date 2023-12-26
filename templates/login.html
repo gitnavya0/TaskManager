@@ -7,9 +7,34 @@
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
   <style type="text/css">
     body {
-      background: #ffffff;
-      font-family: arial;
+      height: 100vh;
+      margin: 0;  
+      display: flex;
+      flex-direction: column;
+      justify-content: flex-start;
+      align-items: center;
+      gap: 3em;
+      background-color: #FFE4D6;
+      font-family: "Recoleta";
+      margin: 0 10em;
     }
+
+    body::before,
+    body::after {
+      position: absolute;
+      left: 0;
+      top: 0;
+      content: '';
+      width: 100%;
+      height: 100%;
+      z-index: -1;
+      opacity: 40%;
+  }
+    body::before {
+      background: #8C8C8C;
+      filter: url(#noiseFilter);
+  }
+
     .login-form h1 {
       font-size: 36px;
       text-align: center;
@@ -26,14 +51,14 @@
         float: left;
     }
     .login-form {
-        background: #F2F1EB;
+        background: #100f0f25;
         width: 400px;
         border-radius: 6px;
         margin: 0 auto;
         display: table;
         padding: 15px 30px 30px;
         box-sizing: border-box;
-        margin-top: 6%;
+        margin-top: 16%;
     }
 
     .form-group {
@@ -155,6 +180,7 @@
     </style>
 </head>
 <body>
+  <div class="background-container">
   <div class="login-form">
     <form>
       <h1>Login</h1>
@@ -178,10 +204,22 @@
 	  
         <button type="button"><i class="fa fa-twitch"></i></button>
         <button type="button"><i class="fa fa-facebook"></i></button>
-		<button type="button"><i class='fa fa-instagram'></i></button>
-		<button type="button"><i class='fa fa-google'></i></button>
+		    <button type="button"><i class='fa fa-instagram'></i></button>
+		    <button type="button"><i class='fa fa-google'></i></button>
       </div>
     </form>
   </div>
+</div>
+  <svg>
+    <filter id='noiseFilter'>
+      <feTurbulence 
+        type='fractalNoise' 
+        baseFrequency='0.6' 
+        stitchTiles='stitch'/>
+       <feColorMatrix in="colorNoise" type="matrix" values="1 0 0 0 0 0 1 0 0 0 0 0 1 0 0 0 0 0 1 0" />
+          <feComposite operator="in" in2="SourceGraphic" result="monoNoise"/>
+          <feBlend in="SourceGraphic" in2="monoNoise" mode="screen" />
+    </filter>  
+  </svg>    
 </body>
 </html>

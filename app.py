@@ -22,7 +22,11 @@ status_mapping = {
 def index():
     tasks = tasks_collection.find()
     return render_template('index.html', tasks=tasks, status_mapping=status_mapping)
-   
+
+@app.route('/login')
+def login():
+    return render_template('login.html')
+
 @app.route('/add_task', methods=['POST'])
 def add_task():
 
