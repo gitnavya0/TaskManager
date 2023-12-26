@@ -7,7 +7,7 @@
     <style>
         body {
             font-family: 'Arial', sans-serif;
-            background-color: #f0f0f0;
+            background-color: #FFE4D6;
             text-align: center;
             margin: 0;
             padding: 0;
@@ -38,5 +38,16 @@
     <form action="#" method="post">
         <button type="submit">Login With Google</button>
     </form>
+    <svg>
+        <filter id='noiseFilter'>
+          <feTurbulence 
+            type='fractalNoise' 
+            baseFrequency='0.6' 
+            stitchTiles='stitch'/>
+           <feColorMatrix in="colorNoise" type="matrix" values="1 0 0 0 0 0 1 0 0 0 0 0 1 0 0 0 0 0 1 0" />
+              <feComposite operator="in" in2="SourceGraphic" result="monoNoise"/>
+              <feBlend in="SourceGraphic" in2="monoNoise" mode="screen" />
+        </filter>  
+      </svg>    
 </body>
 </html>
