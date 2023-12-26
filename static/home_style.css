@@ -1,5 +1,6 @@
 :root {
-    --bg: #FFE4D6;
+    /*--bg: #FFE4D6;*/
+    --bg: white;
     --text: #151515;
     --yellow: #fa9ddb;
     --red: #f0b6d9;
@@ -100,7 +101,8 @@ body::after {
 }
 
 body::before {
-    background: #8C8C8C;
+    /*background: #8C8C8C;*/
+    background: rgb(237, 233, 233);
     filter: url(#noiseFilter);
 }
 
