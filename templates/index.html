@@ -58,8 +58,19 @@
             </tbody>
         </table>
     </div>
+
+    {% if name %}
+    <div>
+        <p>Welcome, {{ user.get("name", "Unknown User") }}!</p>
+    </div>
+    {% else %}
+        <p>Welcome, Unknown User!</p>
+    {% endif %}
+    <button class="logout-button">
+        <a href="{{ url_for('logout') }}">Logout</a>
+    </button>
+    
 </body>
-<!-- JavaScript to handle delete button click -->
 <script>
     document.addEventListener('DOMContentLoaded', function () {
         var deleteButtons = document.querySelectorAll('.delete-btn');

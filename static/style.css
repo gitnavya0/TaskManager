@@ -77,3 +77,22 @@ a:hover {
 .delete-btn:hover {
     background-color: #bd2130;
 }
+
+.logout-button {
+    background-color: #1a3860;
+    /* Green */
+    border: none;
+    color: white;
+    padding: 10px 20px;
+    text-align: center;
+    text-decoration: none;
+    display: inline-block;
+    font-size: 16px;
+    margin: 4px 2px;
+    cursor: pointer;
+}
+
+.logout-button a {
+    color: white;
+    text-decoration: none;
+}
