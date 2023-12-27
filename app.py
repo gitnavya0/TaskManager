@@ -1,8 +1,13 @@
-from flask import Flask, render_template, request, redirect, url_for, jsonify, session, abort,current_app
+from flask import Flask, render_template, request, redirect, url_for, jsonify, session, abort
 from pymongo import MongoClient
 from bson import ObjectId
-from authlib.integrations.flask_client import OAuth
+import os
+import pathlib
 import requests
+from google.oauth2 import id_token
+from google_auth_oauthlib.flow import Flow
+from pip._vendor import cachecontrol
+import google.auth.transport.requests
 
 app = Flask(__name__)
 
@@ -10,9 +15,38 @@ client = MongoClient('mongodb://localhost:27017/')
 db = client['task_manager']  
 tasks_collection = db['tasks']  
 
+app.config['SECRET KEY'] = '4aa57280e394f94555e5e1880ac92e94'
+
+app.secret_key = "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" # Make sure this matches with that's in client_secret.json
+
+os.environ["OAUTHLIB_INSECURE_TRANSPORT"] = "1" # To allow http traffic for local dev
+
+GOOGLE_CLIENT_ID = "155193801246-fp4q9e2kjlh6mdk6e7t5ha198rfa7m11.apps.googleusercontent.com"
+client_secrets_file = os.path.join(pathlib.Path(__file__).parent, "client_secret.json")
+
+flow = Flow.from_client_secrets_file(
+    client_secrets_file=client_secrets_file,
+    scopes=["https://www.googleapis.com/auth/userinfo.profile", "https://www.googleapis.com/auth/userinfo.email", "openid"],
+    redirect_uri="http://127.0.0.1:5000/callback"
+)
+
 @app.route('/')
 def home():
     return render_template("home.html")
+
+def login_is_required(function):
+    def wrapper(*args, **kwargs):
+        if "google_id" not in session:
+            return abort(401)  # Authorization required
+        else:
+            return function()
+    return wrapper
+
+@app.route("/login")
+def login():
+    authorization_url, state = flow.authorization_url()
+    session["state"] = state
+    return redirect(authorization_url)
 
 status_mapping = {
     0: 'To-Do',
@@ -20,56 +54,40 @@ status_mapping = {
     2: 'Completed',
 }
 
-appConf = {
-    "OAUTH2_CLIENT_ID": "155193801246-fp4q9e2kjlh6mdk6e7t5ha198rfa7m11.apps.googleusercontent.com",
-    "OAUTH2_CLIENT_SECRET": "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",
-    "OAUTH2_META_URL": "https://accounts.google.com/.well-known/openid-configuration",
-    "FLASK_SECRET": "47c79391-d81d-4114-b725-aed8988960b5"
-}
-
-app.secret_key = appConf.get("FLASK_SECRET")
-oauth = OAuth(app)
-
-oauth.register(
-    "myApp",
-    client_id=appConf.get("OAUTH2_CLIENT_ID"),
-    client_secret=appConf.get("OAUTH2_CLIENT_SECRET"),
-    client_kwargs={
-        "scope": "openid profile email",
-    },
-    server_metadata_url=f'{appConf.get("OAUTH2_META_URL")}',
-)
-
+@login_is_required
 @app.route('/index')
 def index():
     tasks = tasks_collection.find()
-    user_data = session.get("user", {})
-    print("Session Data:", user_data)
-    name = user_data.get("name")
-    return render_template('index.html', tasks=tasks, status_mapping=status_mapping, name=name)
+    return render_template('index.html', tasks=tasks, status_mapping=status_mapping)
 
-@app.route('/login')
-def login():
-    return render_template('login.html')
+@app.route('/leader', methods = ['GET', 'POST'])
+def leader():
+    tasks = tasks_collection.find()
+    assignees = tasks_collection.distinct('assignee')
+    return render_template('leader.html', tasks=tasks, status_mapping=status_mapping,assignees=assignees)
 
-@app.route("/signin-google")
-def googleCallback():
-    token = oauth.myApp.authorize_access_token()
-    personDataUrl = "https://people.googleapis.com/v1/people/me?personFields=names"
-    personData = requests.get(personDataUrl, headers={
-        "Authorization": f"Bearer {token['access_token']}"
-    }).json()
-    token["personData"] = personData
-    session["user"] = token
-    return redirect(url_for("index")) 
+@app.route("/callback")
+def callback():
+    flow.fetch_token(authorization_response=request.url)
+    if not session["state"] == request.args["state"]:
+        abort(500)  # State does not match!
 
-@app.route("/google-login")
-def googleLogin():
-    if "user" in session:
-        abort(404)
-    return oauth.myApp.authorize_redirect(redirect_uri=url_for("googleCallback", _external=True))
+    credentials = flow.credentials
+    request_session = requests.session()
+    cached_session = cachecontrol.CacheControl(request_session)
+    token_request = google.auth.transport.requests.Request(session=cached_session)
 
-@app.route('/add_task', methods=['POST'])
+    id_info = id_token.verify_oauth2_token(
+        id_token=credentials._id_token,
+        request=token_request,
+        audience=GOOGLE_CLIENT_ID
+    )
+    session["google_id"] = id_info.get("sub")
+    session["name"] = id_info.get("name")
+    return redirect(url_for('home'))
+
+@login_is_required
+@app.route('/add_task', methods=['GET', 'POST'])
 def add_task():
 
     new_task = {
@@ -77,11 +95,14 @@ def add_task():
         'description' : request.form.get('description'),
         'deadline': request.form.get('deadline'),
         'status': int(request.form.get('status')),
+        'assignee': request.form.get('assignee')
         }
 
+    # Insert the new task into MongoDB
     tasks_collection.insert_one(new_task)
-    return redirect(url_for('index'))
+    return redirect(url_for('home'))
 
+@login_is_required
 @app.route('/delete_task/<string:task_id>', methods=['DELETE'])
 def delete_task(task_id):
     try:
@@ -97,11 +118,17 @@ def delete_task(task_id):
         print('Error:', e)
         return jsonify({'error': 'An error occurred while deleting the task.'})
 
+@login_is_required
 @app.route('/update_status/<string:task_id>', methods=['PUT'])
 def update_status(task_id):
     try:
+        # Convert the string to ObjectId
         task_id = ObjectId(task_id)
+
+        # Get the new status from the request data
         new_status = int(request.json.get('status'))
+
+        # Update the task status in MongoDB
         result = tasks_collection.update_one({'_id': task_id}, {'$set': {'status': new_status}})
         if result.modified_count == 1:
             return jsonify({'message': 'Task status updated successfully'})
@@ -111,12 +138,11 @@ def update_status(task_id):
         print('Error:', e)
         return jsonify({'error': 'An error occurred while updating the task status.'})
 
+@login_is_required
 @app.route("/logout")
 def logout():
-    print("Logging out user...")
     session.clear()
-    current_app.logger.info("User logged out")
-    return redirect(url_for("home"))
+    return redirect(url_for('home'))
 
-if __name__ == '__main__':
-   app.run(debug=True)
+if __name__ == "__main__":
+    app.run(host='127.0.0.1', port=5000, debug=True)

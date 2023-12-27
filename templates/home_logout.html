@@ -13,7 +13,6 @@
         <div class="menu">
           <p> <a href="{{ url_for('index') }}">Your Tasks</a></p>
           <p> <a href="{{ url_for('login') }}">Get Started</a></p>
-          <p> <a href="{{ url_for('logout') }}"> Logout </a></p>
         </div>
       </div>
       
@@ -26,9 +25,6 @@
               
           <div class="buttons">
             <a class="button primary" href="{{url_for('login')}}" >Get Started</a>
-          </div>
-          <div class="menu">
-            <p> <a href="{{ url_for('leader') }}" class="homepage-button">Leader</a></p>
           </div>
           <div class="image-container">
             <img src="static/images/landing_image.png" alt="landing_image">

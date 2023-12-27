@@ -28,23 +28,27 @@
                 <option value=2>Completed</option>
             </select>
             <br>
-            <label for="assignee">Assignee:</label>
+            <label for="assignee">Assignee :</label>
             <select type="assignee" name="assignee">
-                <option value="{{ logged_in_name }}">{{ logged_in_name }}</option>
+                {% for assignee in assignees %}
+                    <option value="{{ assignee }}">{{ assignee }}</option>
+                {% endfor %}
             </select>
             <br>
             <br>
             <button type="submit">Add</button>
             <br>
-
-        </form>        
+        </form>   
+        
         <hr>
+
         <table>
             <thead>
                 <th>Task Name</th>
                 <th>Description</th>
                 <th>Deadline</th>
                 <th>Status</th>
+                <th>Assignee</th>
                 <th>Edit Status</th>
                 <th>Delete</th>
             </thead>
@@ -55,6 +59,7 @@
                         <td>{{ task.description }}</td>
                         <td>{{ task.deadline }}</td>
                         <td>{{ status_mapping[task.status] }}</td>
+                        <td>{{ task.assignee }}</td>
                         <td> <select class="edit-status" data-task-id="{{ task._id }}">
                             <option value="0" {% if task.status == 0 %}selected{% endif %}>To-Do</option>
                             <option value="1" {% if task.status == 1 %}selected{% endif %}>In-Progress</option>
@@ -67,11 +72,6 @@
                 {% endfor %}
             </tbody>
         </table>
-    </div>
-    <div class="container">
-        <div class="hero-box">
-            <p class="hero-text">Welcome, {{ logged_in_name }}</p>
-        </div>
     </div>
     <div class="menu">
         <p> <a href="{{ url_for('home') }}" class="homepage-button">Homepage</a></p>
